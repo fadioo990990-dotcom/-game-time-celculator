@@ -1,0 +1,12 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "حساب العاب",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "العاب",
+  "start_url": "/",
+  "theme_color": "#ffffff",
+  "description": "تطبيق لادارة حساب الالعاب والفواتير والمشروبات"
+}
