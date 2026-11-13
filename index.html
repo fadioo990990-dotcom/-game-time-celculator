@@ -1,0 +1,47 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حساب الألعاب</title>
+<style>
+body{font-family:Arial;background:#101827;color:white;margin:0;padding:20px}
+h1{text-align:center;color:#38d9a9}
+.box{background:#1e293b;padding:18px;border-radius:14px;margin:15px 0}
+input,button{width:100%;padding:13px;margin:7px 0;box-sizing:border-box;border-radius:8px;border:0;font-size:17px}
+input{background:#fff;color:#111}
+button{background:#10b981;color:white;font-weight:bold}
+.result{font-size:20px;color:#38d9a9;text-align:center}
+</style>
+</head>
+<body>
+<h1>🎮 حساب الألعاب</h1>
+<div class="box">
+<h3>اختيار اللعبة</h3>
+<select id="game" style="width:100%;padding:13px;font-size:17px">
+<option value="5000">فوتبول</option>
+<option value="5000">هوكي</option>
+<option value="0">بلياردو</option>
+</select>
+<h3>وقت اللعب بالدقائق</h3>
+<input id="minutes" type="number" placeholder="أدخل عدد الدقائق">
+<h3>سعر اللعبة</h3>
+<input id="price" type="number" value="5000">
+<button onclick="calculate()">احسب الحساب</button>
+<div class="result" id="result">المبلغ: 0</div>
+</div>
+<script>
+function calculate(){
+let minutes=Number(document.getElementById('minutes').value);
+let price=Number(document.getElementById('price').value);
+if(minutes<=0){alert('أدخل وقت اللعب');return;}
+let total=Math.ceil(minutes/60)*price;
+document.getElementById('result').innerText='المبلغ: '+total.toLocaleString('en-US');
+}
+document.getElementById('game').onchange=function(){
+document.getElementById('price').value=this.value;
+};
+</script>
+</body>
+</html>
