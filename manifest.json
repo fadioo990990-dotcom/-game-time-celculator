@@ -9,5 +9,13 @@
   "start_url": "/-game-time-celculator/",
   "theme_color": "#38D9A9",
   "description": "تطبيق لإدارة حساب الألعاب والفواتير والمشروبات",
-  "id": "/-game-time-celculator/"
+  "id": "/-game-time-celculator/",
+"icons": [
+  {
+    "src": "launchericon-512x512.png",
+    "sizes": "512x512",
+    "type": "image/png",
+    "purpose": "any"
+  }
+]
 }
