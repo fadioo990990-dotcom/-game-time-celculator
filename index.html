@@ -1,47 +1,212 @@
 
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>حساب الألعاب</title>
 <style>
-body{font-family:Arial;background:#101827;color:white;margin:0;padding:20px}
+body{font-family:Arial;background:#101827;color:white;margin:0;padding:15px}
 h1{text-align:center;color:#38d9a9}
-.box{background:#1e293b;padding:18px;border-radius:14px;margin:15px 0}
-input,button{width:100%;padding:13px;margin:7px 0;box-sizing:border-box;border-radius:8px;border:0;font-size:17px}
-input{background:#fff;color:#111}
-button{background:#10b981;color:white;font-weight:bold}
-.result{font-size:20px;color:#38d9a9;text-align:center}
+.box{background:#1e293b;padding:16px;border-radius:14px;margin:14px 0}
+label{display:block;margin-top:12px}
+input,select,button{width:100%;padding:13px;margin-top:7px;box-sizing:border-box;border:0;border-radius:8px;font-size:17px}
+input,select{background:white;color:#111}
+button{background:#10b981;color:white;font-weight:bold;cursor:pointer}
+.result{font-size:20px;color:#38d9a9;text-align:center;margin-top:15px}
+.item{background:#334155;padding:12px;border-radius:9px;margin:8px 0}
+.small{font-size:14px;color:#cbd5e1}
 </style>
 </head>
 <body>
+
 <h1>🎮 حساب الألعاب</h1>
+
 <div class="box">
-<h3>اختيار اللعبة</h3>
-<select id="game" style="width:100%;padding:13px;font-size:17px">
-<option value="5000">فوتبول</option>
-<option value="5000">هوكي</option>
-<option value="0">بلياردو</option>
+<h3>تسجيل لعبة جديدة</h3>
+
+<label>اختر اللعبة</label>
+<select id="game">
+<option value="football">فوتبول</option>
+<option value="hockey">هوكي</option>
+<option value="billiards">بلياردو</option>
 </select>
-<h3>وقت اللعب بالدقائق</h3>
-<input id="minutes" type="number" placeholder="أدخل عدد الدقائق">
-<h3>سعر اللعبة</h3>
-<input id="price" type="number" value="5000">
-<button onclick="calculate()">احسب الحساب</button>
+
+<label>وقت البداية</label>
+<input type="time" id="start">
+
+<label>وقت النهاية</label>
+<input type="time" id="end">
+
+<label>سعر الساعة</label>
+<input type="number" id="price" min="0" value="5000">
+
+<button onclick="calculate()">احسب المبلغ</button>
+
 <div class="result" id="result">المبلغ: 0</div>
+
+<button onclick="saveSession()">حفظ اللعبة والإيراد</button>
 </div>
+
+<div class="box">
+<h3>⚙️ تعديل أسعار الألعاب</h3>
+
+<label>سعر ساعة الفوتبول</label>
+<input type="number" id="footballPrice" min="0" value="5000">
+
+<label>سعر ساعة الهوكي</label>
+<input type="number" id="hockeyPrice" min="0" value="5000">
+
+<label>سعر ساعة البلياردو</label>
+<input type="number" id="billiardsPrice" min="0" value="0">
+
+<button onclick="savePrices()">حفظ الأسعار</button>
+</div>
+
+<div class="box">
+<h3>💰 الإيرادات اليومية</h3>
+<div class="result" id="dailyTotal">0</div>
+<div id="sessions"></div>
+</div>
+
 <script>
-function calculate(){
-let minutes=Number(document.getElementById('minutes').value);
-let price=Number(document.getElementById('price').value);
-if(minutes<=0){alert('أدخل وقت اللعب');return;}
-let total=Math.ceil(minutes/60)*price;
-document.getElementById('result').innerText='المبلغ: '+total.toLocaleString('en-US');
-}
-document.getElementById('game').onchange=function(){
-document.getElementById('price').value=this.value;
+let prices = JSON.parse(localStorage.getItem("gamePrices")) || {
+ football:5000,
+ hockey:5000,
+ billiards:0
 };
+
+let records = JSON.parse(localStorage.getItem("gameRecords")) || [];
+
+let lastAmount = 0;
+let lastMinutes = 0;
+
+function money(n){
+ return Number(n).toLocaleString("en-US",{
+  minimumFractionDigits:2,
+  maximumFractionDigits:2
+ });
+}
+
+function loadPrices(){
+ document.getElementById("footballPrice").value=prices.football;
+ document.getElementById("hockeyPrice").value=prices.hockey;
+ document.getElementById("billiardsPrice").value=prices.billiards;
+ updatePrice();
+}
+
+function updatePrice(){
+ let game=document.getElementById("game").value;
+ document.getElementById("price").value=prices[game];
+}
+
+document.getElementById("game").addEventListener("change",updatePrice);
+
+function savePrices(){
+ prices={
+  football:Number(document.getElementById("footballPrice").value),
+  hockey:Number(document.getElementById("hockeyPrice").value),
+  billiards:Number(document.getElementById("billiardsPrice").value)
+ };
+
+ if(Object.values(prices).some(p=>!Number.isFinite(p)||p<0)){
+  alert("تأكد من الأسعار");
+  return;
+ }
+
+ localStorage.setItem("gamePrices",JSON.stringify(prices));
+ updatePrice();
+ alert("تم حفظ الأسعار بنجاح");
+}
+
+function calculate(){
+ let start=document.getElementById("start").value;
+ let end=document.getElementById("end").value;
+ let price=Number(document.getElementById("price").value);
+
+ if(!start||!end||!Number.isFinite(price)||price<0){
+  alert("أدخل وقت البداية والنهاية والسعر");
+  return false;
+ }
+
+ let [sh,sm]=start.split(":").map(Number);
+ let [eh,em]=end.split(":").map(Number);
+
+ let startMinutes=sh*60+sm;
+ let endMinutes=eh*60+em;
+
+ if(endMinutes<startMinutes) endMinutes+=1440;
+
+ lastMinutes=endMinutes-startMinutes;
+
+ if(lastMinutes<=0){
+  alert("وقت اللعب غير صحيح");
+  return false;
+ }
+
+ lastAmount=Math.round((price/60*lastMinutes)*100)/100;
+
+ document.getElementById("result").innerText=
+ "المدة: "+lastMinutes+" دقيقة | المبلغ: "+money(lastAmount);
+
+ return true;
+}
+
+function saveSession(){
+ if(!calculate()) return;
+
+ let game=document.getElementById("game").value;
+
+ let names={
+  football:"فوتبول",
+  hockey:"هوكي",
+  billiards:"بلياردو"
+ };
+
+ let record={
+  game:names[game],
+  start:document.getElementById("start").value,
+  end:document.getElementById("end").value,
+  minutes:lastMinutes,
+  amount:lastAmount,
+  date:new Date().toLocaleDateString("en-CA")
+ };
+
+ records.push(record);
+
+ localStorage.setItem("gameRecords",JSON.stringify(records));
+
+ document.getElementById("start").value="";
+ document.getElementById("end").value="";
+ document.getElementById("result").innerText="تم حفظ اللعبة بنجاح";
+
+ showRecords();
+}
+
+function showRecords(){
+ let today=new Date().toLocaleDateString("en-CA");
+
+ let daily=records.filter(r=>r.date===today);
+
+ let total=daily.reduce((sum,r)=>sum+r.amount,0);
+
+ document.getElementById("dailyTotal").innerText=
+ "إجمالي اليوم: "+money(total);
+
+ document.getElementById("sessions").innerHTML=
+ daily.map(r=>`
+ <div class="item">
+ <b>${r.game}</b><br>
+ <span class="small">من ${r.start} إلى ${r.end}</span><br>
+ المدة: ${r.minutes} دقيقة<br>
+ المبلغ: ${money(r.amount)}
+ </div>
+ `).join("") || "لا توجد ألعاب مسجلة اليوم";
+}
+
+loadPrices();
+showRecords();
 </script>
+
 </body>
 </html>
