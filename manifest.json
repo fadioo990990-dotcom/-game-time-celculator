@@ -1,12 +1,13 @@
 {
-  "background_color": "#ffffff",
-  "dir": "ltr",
+  "background_color": "#101827",
+  "dir": "rtl",
   "display": "standalone",
-  "name": "حساب العاب",
+  "name": "حساب الألعاب",
   "orientation": "any",
-  "scope": "/",
-  "short_name": "العاب",
-  "start_url": "/",
-  "theme_color": "#ffffff",
-  "description": "تطبيق لادارة حساب الالعاب والفواتير والمشروبات"
+  "scope": "/-game-time-celculator/",
+  "short_name": "الألعاب",
+  "start_url": "/-game-time-celculator/",
+  "theme_color": "#38D9A9",
+  "description": "تطبيق لإدارة حساب الألعاب والفواتير والمشروبات",
+  "id": "/-game-time-celculator/"
 }
