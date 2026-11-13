@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -21,20 +20,27 @@ button{background:#38d9a9;color:#102027;font-weight:bold}
 .total{font-size:22px;color:#38d9a9;font-weight:bold}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 hr{border:0;border-top:1px solid #475569;margin:12px 0}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{width:auto;flex:1}
+.active{background:#f59e0b;color:#111827}
 </style>
 </head>
 <body>
 <h1>🎮 حساب الألعاب</h1>
 
 <div class="box">
-<h2>🧾 فاتورة جديدة</h2>
-<label>اسم الزبون</label>
-<input id="customer" placeholder="اسم الزبون (اختياري)">
+<h2>🧾 الفواتير المفتوحة</h2>
+<div id="invoiceTabs" class="tabs"></div>
+<button onclick="newInvoice()">+ فاتورة جديدة</button>
+</div>
+
+<div class="box">
+<h2>بيانات الزبون</h2>
+<input id="customer" placeholder="اسم الزبون (اختياري)" oninput="updateCustomer()">
 </div>
 
 <div class="box">
 <h2>🎱 إضافة لعبة</h2>
-<label>اختر اللعبة أو الجهاز</label>
 <select id="game">
 <option value="football">فوتبول</option>
 <option value="hockey">هوكي</option>
@@ -55,52 +61,46 @@ hr{border:0;border-top:1px solid #475569;margin:12px 0}
 <input type="time" id="end">
 </div>
 </div>
-<button onclick="addGame()">إضافة اللعبة إلى الفاتورة</button>
+<button onclick="addGame()">إضافة اللعبة</button>
 </div>
 
 <div class="box">
 <h2>🥤 إضافة مشروب</h2>
-<label>اختر المشروب</label>
 <select id="drink"></select>
-<label>الكمية</label>
 <input type="number" id="quantity" value="1" min="1">
-<button onclick="addDrink()">إضافة المشروب إلى الفاتورة</button>
+<button onclick="addDrink()">إضافة المشروب</button>
 </div>
 
 <div class="box">
-<h2>🧾 تفاصيل الفاتورة الحالية</h2>
+<h2>🧾 الفاتورة الحالية</h2>
 <div id="currentItems">لا توجد إضافات بعد</div>
 <hr>
 <div class="total">المجموع: <span id="total">0</span></div>
 <button onclick="saveInvoice()">حفظ الفاتورة</button>
 <button class="red" onclick="clearCurrent()">إلغاء الفاتورة الحالية</button>
-</div>
-
-<div class="box">
+</div><div class="box">
 <h2>⚙️ تعديل أسعار الألعاب</h2>
 <div id="pricesArea"></div>
 <button onclick="savePrices()">حفظ أسعار الألعاب</button>
-<p class="small">الأسعار محسوبة لكل ساعة، والتطبيق يحسب قيمة الدقائق تلقائياً.</p>
+<p class="small">الأسعار محسوبة لكل ساعة، والحساب بالدقائق.</p>
 </div>
 
 <div class="box">
 <h2>🥤 إدارة المشروبات والأسعار</h2>
 <div id="drinksArea"></div>
 <hr>
-<label>اسم مشروب جديد</label>
-<input id="newDrinkName" placeholder="مثلاً: شاي">
-<label>سعر المشروب</label>
-<input id="newDrinkPrice" type="number" placeholder="السعر">
+<input id="newDrinkName" placeholder="اسم مشروب جديد">
+<input id="newDrinkPrice" type="number" placeholder="سعر المشروب">
 <button onclick="addNewDrink()">إضافة مشروب جديد</button>
 </div>
 
 <div class="box">
-<h2>📊 الإيرادات اليومية</h2>
+<h2>📊 الإيرادات اليومية والفواتير المحفوظة</h2>
 <div id="dailyTotal" class="total">0</div>
 <div id="invoicesList"></div>
 </div>
 
-
+<script>
 const gameNames={
 football:"فوتبول",
 hockey:"هوكي",
@@ -126,11 +126,193 @@ let drinks=JSON.parse(localStorage.getItem("drinks")||"null")||[
 ];
 
 let invoices=JSON.parse(localStorage.getItem("invoices")||"[]");
-let currentItems=[];
 
-function money(n){return Math.round(n).toLocaleString("en-US")}
+let openInvoices=JSON.parse(localStorage.getItem("openInvoices")||"null");
+if(!Array.isArray(openInvoices)||openInvoices.length===0){
+openInvoices=[{id:Date.now(),customer:"",items:[]}];
+}
+let activeId=Number(localStorage.getItem("activeInvoice"))||openInvoices[0].id;
 
-function renderPrices(){
+function money(n){
+return Math.round(n).toLocaleString("en-US");
+}
+
+function persist(){
+localStorage.setItem("prices",JSON.stringify(prices));
+localStorage.setItem("drinks",JSON.stringify(drinks));
+localStorage.setItem("invoices",JSON.stringify(invoices));
+localStorage.setItem("openInvoices",JSON.stringify(openInvoices));
+localStorage.setItem("activeInvoice",String(activeId));
+}
+
+function current(){
+return openInvoices.find(x=>x.id===activeId)||openInvoices[0];
+}
+
+function newInvoice(){
+let x={id:Date.now(),customer:"",items:[]};
+openInvoices.push(x);
+activeId=x.id;
+persist();
+render();
+}
+
+function switchInvoice(id){
+activeId=id;
+persist();
+render();
+}
+
+function updateCustomer(){
+current().customer=document.getElementById("customer").value;
+persist();
+renderTabs();
+}function addGame(){
+let key=document.getElementById("game").value;
+let start=document.getElementById("start").value;
+let end=document.getElementById("end").value;
+
+if(!start||!end){
+alert("أدخل وقت البداية والنهاية");
+return;
+}
+
+let a=start.split(":").map(Number);
+let b=end.split(":").map(Number);
+let startMinutes=a[0]*60+a[1];
+let endMinutes=b[0]*60+b[1];
+
+if(endMinutes<startMinutes)endMinutes+=1440;
+
+let minutes=endMinutes-startMinutes;
+if(minutes===0){
+alert("مدة اللعبة لا يمكن أن تكون صفراً");
+return;
+}
+
+let amount=prices[key]*minutes/60;
+
+current().items.push({
+type:"game",
+name:gameNames[key],
+start,end,minutes,amount
+});
+
+persist();
+renderCurrent();
+}
+
+function addDrink(){
+if(drinks.length===0){
+alert("أضف مشروباً أولاً");
+return;
+}
+
+let i=Number(document.getElementById("drink").value);
+let qty=Number(document.getElementById("quantity").value);
+
+if(!Number.isInteger(qty)||qty<1){
+alert("أدخل كمية صحيحة");
+return;
+}
+
+let d=drinks[i];
+if(!d)return;
+
+current().items.push({
+type:"drink",
+name:d.name,
+quantity:qty,
+amount:d.price*qty
+});
+
+persist();
+renderCurrent();
+}
+
+function renderTabs(){
+document.getElementById("invoiceTabs").innerHTML=
+openInvoices.map(x=>
+`<button class="${x.id===activeId?"active":""}"
+onclick="switchInvoice(${x.id})">
+${escapeHtml(x.customer||"فاتورة جديدة")}
+</button>`
+).join("");
+}
+
+function renderCurrent(){
+let x=current();
+document.getElementById("customer").value=x.customer||"";
+
+let html="";
+let sum=0;
+
+x.items.forEach((item,i)=>{
+sum+=item.amount;
+let details=item.type==="game"
+?`المدة: ${item.minutes} دقيقة | ${item.start} - ${item.end}`
+:`الكمية: ${item.quantity}`;
+
+html+=`<div class="item">
+<strong>${escapeHtml(item.name)}</strong>
+<div class="small">${details}</div>
+<div>السعر: ${money(item.amount)}</div>
+<button class="red" onclick="removeItem(${i})">حذف</button>
+</div>`;
+});
+
+document.getElementById("currentItems").innerHTML=html||"لا توجد إضافات بعد";
+document.getElementById("total").textContent=money(sum);
+}
+
+function removeItem(i){
+current().items.splice(i,1);
+persist();
+renderCurrent();
+}
+
+function clearCurrent(){
+if(!confirm("إلغاء الفاتورة الحالية؟"))return;
+current().items=[];
+current().customer="";
+persist();
+render();
+}
+
+function saveInvoice(){
+let x=current();
+if(x.items.length===0){
+alert("الفاتورة فارغة");
+return;
+}
+
+let total=x.items.reduce((s,item)=>s+item.amount,0);
+
+invoices.push({
+id:Date.now(),
+date:today(),
+time:new Date().toLocaleTimeString("ar",{hour:"2-digit",minute:"2-digit"}),
+customer:x.customer,
+items:x.items,
+total
+});
+
+openInvoices=openInvoices.filter(a=>a.id!==activeId);
+
+if(openInvoices.length===0){
+openInvoices=[{id:Date.now()+1,customer:"",items:[]}];
+}
+
+activeId=openInvoices[0].id;
+persist();
+render();
+alert("تم حفظ الفاتورة بنجاح");
+}
+
+function today(){
+let d=new Date();
+return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}function renderPrices(){
 let html="";
 for(let key in gameNames){
 html+=`<label>${gameNames[key]} - سعر الساعة</label>
@@ -143,7 +325,7 @@ function savePrices(){
 for(let key in gameNames){
 prices[key]=Number(document.getElementById("price_"+key).value)||0;
 }
-localStorage.setItem("prices",JSON.stringify(prices));
+persist();
 alert("تم حفظ أسعار الألعاب");
 }
 
@@ -151,13 +333,13 @@ function renderDrinks(){
 let select=document.getElementById("drink");
 select.innerHTML="";
 drinks.forEach((d,i)=>{
-select.innerHTML+=`<option value="${i}">${d.name} - ${money(d.price)}</option>`;
+select.innerHTML+=`<option value="${i}">${escapeHtml(d.name)} - ${money(d.price)}</option>`;
 });
 
 let html="";
 drinks.forEach((d,i)=>{
 html+=`<div class="item">
-<strong>${d.name}</strong>
+<strong>${escapeHtml(d.name)}</strong>
 <input type="number" id="drinkPrice_${i}" value="${d.price}" min="0">
 <button class="blue" onclick="updateDrink(${i})">تعديل السعر</button>
 <button class="red" onclick="deleteDrink(${i})">حذف المشروب</button>
@@ -165,170 +347,86 @@ html+=`<div class="item">
 });
 document.getElementById("drinksArea").innerHTML=html;
 }
-</script>
 
 function updateDrink(i){
 drinks[i].price=Number(document.getElementById("drinkPrice_"+i).value)||0;
-saveDrinks();
+persist();
 renderDrinks();
 }
 
 function deleteDrink(i){
 if(!confirm("هل تريد حذف هذا المشروب؟"))return;
 drinks.splice(i,1);
-saveDrinks();
+persist();
 renderDrinks();
 }
 
 function addNewDrink(){
 let name=document.getElementById("newDrinkName").value.trim();
-let price=Number(document.getElementById("newDrinkPrice").value);
-if(!name||price<0||document.getElementById("newDrinkPrice").value===""){
+let priceInput=document.getElementById("newDrinkPrice").value;
+let price=Number(priceInput);
+
+if(!name||priceInput===""){
 alert("أدخل اسم المشروب وسعره");
 return;
 }
+
 drinks.push({name,price});
-saveDrinks();
+persist();
 renderDrinks();
 document.getElementById("newDrinkName").value="";
 document.getElementById("newDrinkPrice").value="";
-}
-
-function saveDrinks(){
-localStorage.setItem("drinks",JSON.stringify(drinks));
-}
-
-function addGame(){
-let key=document.getElementById("game").value;
-let start=document.getElementById("start").value;
-let end=document.getElementById("end").value;
-if(!start||!end){
-alert("أدخل وقت البداية والنهاية");
-return;
-}
-let a=start.split(":").map(Number);
-let b=end.split(":").map(Number);
-let startMinutes=a[0]*60+a[1];
-let endMinutes=b[0]*60+b[1];
-if(endMinutes<startMinutes)endMinutes+=1440;
-let minutes=endMinutes-startMinutes;
-if(minutes===0){
-alert("مدة اللعبة لا يمكن أن تكون صفراً");
-return;
-}
-let amount=prices[key]*minutes/60;
-currentItems.push({
-type:"game",name:gameNames[key],
-start,end,minutes,amount
-});
-renderCurrent();
-}
-
-function addDrink(){
-if(drinks.length===0){
-alert("أضف مشروباً أولاً");
-return;
-}
-let i=Number(document.getElementById("drink").value);
-let qty=Number(document.getElementById("quantity").value);
-if(!Number.isInteger(qty)||qty<1){
-alert("أدخل كمية صحيحة");
-return;
-}
-let d=drinks[i];
-currentItems.push({
-type:"drink",name:d.name,quantity:qty,amount:d.price*qty
-});
-renderCurrent();
-}
-
-function renderCurrent(){
-let html="";
-let sum=0;
-currentItems.forEach((item,i)=>{
-sum+=item.amount;
-let details=item.type==="game"
-?`المدة: ${item.minutes} دقيقة | ${item.start} - ${item.end}`
-:`الكمية: ${item.quantity}`;
-html+=`<div class="item">
-<strong>${item.name}</strong>
-<div class="small">${details}</div>
-<div>السعر: ${money(item.amount)}</div>
-<button class="red" onclick="removeItem(${i})">حذف</button>
-</div>`;
-});
-document.getElementById("currentItems").innerHTML=html||"لا توجد إضافات بعد";
-document.getElementById("total").textContent=money(sum);
-}
-
-function removeItem(i){
-currentItems.splice(i,1);
-renderCurrent();
-}
-
-function clearCurrent(){
-if(currentItems.length===0)return;
-if(!confirm("إلغاء الفاتورة الحالية؟"))return;
-currentItems=[];
-document.getElementById("customer").value="";
-renderCurrent();
-}
-
-function today(){
-let d=new Date();
-return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-}
-
-function saveInvoice(){
-if(currentItems.length===0){
-alert("الفاتورة فارغة");
-return;
-}
-let total=currentItems.reduce((s,x)=>s+x.amount,0);
-let invoice={
-id:Date.now(),date:today(),
-time:new Date().toLocaleTimeString("ar",{hour:"2-digit",minute:"2-digit"}),
-customer:document.getElementById("customer").value.trim(),
-items:currentItems,total
-};
-invoices.push(invoice);
-localStorage.setItem("invoices",JSON.stringify(invoices));
-currentItems=[];
-document.getElementById("customer").value="";
-renderCurrent();
-renderInvoices();
-alert("تم حفظ الفاتورة بنجاح");
 }
 
 function renderInvoices(){
 let date=today();
 let todays=invoices.filter(x=>x.date===date);
 let total=todays.reduce((s,x)=>s+x.total,0);
+
 document.getElementById("dailyTotal").textContent=money(total);
+
 let html="";
 todays.slice().reverse().forEach(inv=>{
-let items=inv.items.map(x=>x.name).join("، ");
+let items=inv.items.map(x=>escapeHtml(x.name)).join("، ");
 html+=`<div class="item">
-<strong>${inv.customer||"زبون"}</strong>
+<strong>${escapeHtml(inv.customer||"زبون")}</strong>
 <div class="small">${inv.time} - ${items}</div>
 <div class="total">${money(inv.total)}</div>
 <button class="red" onclick="deleteInvoice(${inv.id})">حذف الفاتورة</button>
 </div>`;
 });
+
 document.getElementById("invoicesList").innerHTML=html||"لا توجد فواتير اليوم";
 }
 
 function deleteInvoice(id){
 if(!confirm("هل تريد حذف الفاتورة؟"))return;
 invoices=invoices.filter(x=>x.id!==id);
-localStorage.setItem("invoices",JSON.stringify(invoices));
+persist();
 renderInvoices();
 }
 
+function escapeHtml(s){
+return String(s??"").replace(/[&<>"']/g,c=>({
+"&":"&amp;",
+"<":"&lt;",
+">":"&gt;",
+'"':"&quot;",
+"'":"&#39;"
+}[c]));
+}
+
+
+function render(){
+renderTabs();
+renderCurrent();
 renderPrices();
 renderDrinks();
-renderCurrent();
 renderInvoices();
+}
+
+persist();
+render();
 </script>
 </body>
 </html>
