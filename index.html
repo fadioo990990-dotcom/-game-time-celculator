@@ -210,7 +210,14 @@ return String(s??"").replace(/[&<>"']/g,c=>({
 }
 
 function openGame(key){
+alert("تم الضغط على: " + key);
+
 currentGame=key;
+
+document.querySelectorAll("body > .box").forEach(box=>{
+box.classList.add("hidden");
+});
+
 document.getElementById("gamePanel").classList.remove("hidden");
 document.getElementById("gameTitle").textContent=gameNames[key];
 document.getElementById("gameStart").value="";
