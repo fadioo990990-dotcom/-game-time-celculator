@@ -225,9 +225,17 @@ document.getElementById("gameEnd").value="";
 document.getElementById("gameCustomer").value="";
 }
 
+
 function closeGame(){
 document.getElementById("gamePanel").classList.add("hidden");
+
+document.querySelectorAll("body > .box").forEach(box=>{
+if(box.id !== "gamePanel"){
+box.classList.remove("hidden");
 }
+});
+}
+
 
 function addGameSession(){
 let start=document.getElementById("gameStart").value;
