@@ -237,6 +237,7 @@ box.classList.remove("hidden");
 }
 
 
+
 function addGameSession(){
 let start=document.getElementById("gameStart").value;
 let end=document.getElementById("gameEnd").value;
@@ -249,12 +250,14 @@ return;
 
 let a=start.split(":").map(Number);
 let b=end.split(":").map(Number);
+
 let startMinutes=a[0]*60+a[1];
 let endMinutes=b[0]*60+b[1];
 
 if(endMinutes<startMinutes)endMinutes+=1440;
 
 let minutes=endMinutes-startMinutes;
+
 if(minutes===0){
 alert("مدة اللعب لا يمكن أن تكون صفراً");
 return;
