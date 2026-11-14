@@ -93,20 +93,15 @@ font-size:18px;
 <h2 id="gameTitle">اللعبة</h2>
 <label>اسم الزبون</label>
 <input id="gameCustomer" placeholder="اسم الزبون">
-<div class="grid">
-<div>
-<label>وقت البداية</label>
-<input type="time" id="gameStart">
-</div>
-<div>
-<label>وقت النهاية</label>
-<input type="time" id="gameEnd">
-</div>
-</div>
-<button onclick="addGameSession()">إضافة الحساب</button>
+<button onclick="startGameSession()">▶️ بدء اللعب</button>
 <button class="red" onclick="closeGame()">إغلاق</button>
 </div>
-
+<div class="box">
+<h2>⏱️ الألعاب النشطة حالياً</h2>
+<div id="activeSessionsArea">
+لا توجد جلسات نشطة
+</div>
+</div>
 <div class="box">
 <h2>🥤 المشروبات</h2>
 <select id="drinkSelect"></select>
@@ -191,16 +186,19 @@ let invoices=JSON.parse(localStorage.getItem("invoices")||"[]");
 let currentGame="";
 let items=[];
 
-
+let activeSessions=JSON.parse(localStorage.getItem("activeSessions")||"{}");
 function money(n){
 return Math.round(n).toLocaleString("en-US");
 }
+
 
 function persist(){
 localStorage.setItem("prices",JSON.stringify(prices));
 localStorage.setItem("drinks",JSON.stringify(drinks));
 localStorage.setItem("invoices",JSON.stringify(invoices));
+localStorage.setItem("activeSessions",JSON.stringify(activeSessions));
 }
+
 
 function escapeHtml(s){
 return String(s??"").replace(/[&<>"']/g,c=>({
@@ -209,32 +207,48 @@ return String(s??"").replace(/[&<>"']/g,c=>({
 }[c]));
 }
 
+
 function openGame(key){
-alert("تم الضغط على: " + key);
-
 currentGame=key;
-
-
 
 document.getElementById("gamePanel").classList.remove("hidden");
 document.getElementById("gameTitle").textContent=gameNames[key];
-document.getElementById("gameStart").value="";
-document.getElementById("gameEnd").value="";
 document.getElementById("gameCustomer").value="";
 }
 
-
 function closeGame(){
 document.getElementById("gamePanel").classList.add("hidden");
-
-document.querySelectorAll("body > .box").forEach(box=>{
-if(box.id !== "gamePanel"){
-box.classList.remove("hidden");
-}
-});
+currentGame="";
 }
 
+function startGameSession(){
 
+if(!currentGame){
+alert("اختر اللعبة أولاً");
+return;
+}
+
+if(activeSessions[currentGame]){
+alert("هذه اللعبة تعمل بالفعل");
+return;
+}
+
+let customer=document.getElementById("gameCustomer").value.trim();
+
+activeSessions[currentGame]={
+key:currentGame,
+customer:customer,
+startTime:Date.now(),
+pricePerHour:prices[currentGame]
+};
+
+persist();
+
+document.getElementById("gamePanel").classList.add("hidden");
+currentGame="";
+
+renderActiveSessions();
+}
 
 function addGameSession(){
 let start=document.getElementById("gameStart").value;
