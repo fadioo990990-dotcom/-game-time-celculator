@@ -244,14 +244,24 @@ return today().slice(0,7);
 }
 
 function openGame(key){
-if(activeSessions[key]){
-alert("هذه اللعبة تعمل بالفعل. يمكنك إدارتها من قسم الألعاب النشطة.");
+
+if(!gameNames[key]){
+alert("اللعبة غير موجودة");
 return;
 }
+
 currentGame=key;
-document.getElementById("gamePanel").classList.remove("hidden");
+
+let panel=document.getElementById("gamePanel");
+
+panel.classList.remove("hidden");
+panel.style.display="block";
+
 document.getElementById("gameTitle").textContent=gameNames[key];
 document.getElementById("gameCustomer").value="";
+
+panel.scrollIntoView({behavior:"smooth",block:"center"});
+
 }
 
 function closeGame(){
