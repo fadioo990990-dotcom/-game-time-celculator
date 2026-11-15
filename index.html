@@ -249,48 +249,69 @@ currentGame="";
 
 renderActiveSessions();
 }
+function renderActiveSessions(){
 
-function addGameSession(){
-let start=document.getElementById("gameStart").value;
-let end=document.getElementById("gameEnd").value;
-let customer=document.getElementById("gameCustomer").value.trim();
+let html="";
 
-if(!start||!end){
-alert("أدخل وقت البداية والنهاية");
+for(let key in activeSessions){
+
+let session=activeSessions[key];
+
+let elapsed=Math.floor((Date.now()-session.startTime)/1000);
+let hours=Math.floor(elapsed/3600);
+let minutes=Math.floor((elapsed%3600)/60);
+let seconds=elapsed%60;
+
+html+=`<div class="item">
+<strong>${escapeHtml(gameNames[key])}</strong>
+<div>الزبون: ${escapeHtml(session.customer||"بدون اسم")}</div>
+<div class="small">
+الوقت: ${hours} ساعة و ${minutes} دقيقة و ${seconds} ثانية
+</div>
+<button class="red" onclick="endGameSession('${key}')">
+إنهاء اللعب
+</button>
+</div>`;
+
+
+document.getElementById("activeSessionsArea").innerHTML=
+html||"لا توجد جلسات نشطة";
+}
+}
+
+function endGameSession(key){
+let session=activeSessions[key];
+
+if(!session){
 return;
 }
 
-let a=start.split(":").map(Number);
-let b=end.split(":").map(Number);
+let endTime=Date.now();
+let elapsedMs=endTime-session.startTime;
 
-let startMinutes=a[0]*60+a[1];
-let endMinutes=b[0]*60+b[1];
-
-if(endMinutes<startMinutes)endMinutes+=1440;
-
-let minutes=endMinutes-startMinutes;
-
-if(minutes===0){
-alert("مدة اللعب لا يمكن أن تكون صفراً");
-return;
-}
-
-let amount=prices[currentGame]*minutes/60;
+let minutes=Math.ceil(elapsedMs/60000);
+let amount=session.pricePerHour*elapsedMs/3600000;
 
 items.push({
 type:"game",
-key:currentGame,
-name:gameNames[currentGame],
-customer:customer,
-start:start,
-end:end,
+key:key,
+name:gameNames[key],
+customer:session.customer,
+start:new Date(session.startTime).toLocaleTimeString("ar"),
+end:new Date(endTime).toLocaleTimeString("ar"),
 minutes:minutes,
 amount:amount
 });
 
+delete activeSessions[key];
+
+persist();
+renderActiveSessions();
 renderItems();
-closeGame();
+
+alert("تم إنهاء اللعب وإضافة المبلغ إلى الحساب الحالي");
 }
+
 
 function addDrink(){
 let i=Number(document.getElementById("drinkSelect").value);
@@ -502,7 +523,12 @@ renderPrices();
 renderDrinks();
 renderItems();
 renderInvoices();
+renderActiveSessions();
 }
+
+setInterval(function(){
+renderActiveSessions();
+},1000);
 
 persist();
 render();
